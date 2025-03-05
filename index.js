@@ -1,52 +1,22 @@
 import express from 'express';
 import qr from 'qr-image';
-import fs from 'fs';
-import inquirer from 'inquirer';
 
 const app = express();
 const port = 3000;
 
-// Function to prompt the user for a URL
-async function getWebsiteInput() {
-    const answers = await inquirer.prompt([
-        {
-            type: 'input',
-            name: 'websiteURL',
-            message: 'Enter the website URL to generate QR code:'
-        }
-    ]);
+app.get('/generate', (req, res) => {
+    const url = req.query.url;
 
-    return answers.websiteURL;
-}
-
-// QR code generation and server setup
-async function startServer() {
-    const websiteURL = await getWebsiteInput();
-
-    if (!websiteURL) {
-        console.log('No URL provided. Exiting...');
-        process.exit(1);
+    if (!url) {
+        return res.status(400).send('Please provide a URL, e.g., /generate?url=https://example.com');
     }
 
-    console.log(`Generating QR code for: ${websiteURL}`);
+    const qrCode = qr.image(url, { type: 'png' });
 
-    const qrCode = qr.image(websiteURL, { type: 'png' });
-    const qrPath = './qr-code.png';
-    const qrStream = fs.createWriteStream(qrPath);
-    qrCode.pipe(qrStream);
+    res.type('png');
+    qrCode.pipe(res);
+});
 
-    qrStream.on('finish', () => {
-        console.log(`QR code generated! Access it at: http://localhost:${port}/qr`);
-    });
-
-    // Serve the QR code in the browser
-    app.get('/qr', (req, res) => {
-        res.sendFile(qrPath, { root: '.' });
-    });
-
-    app.listen(port, () => {
-        console.log(`QR generator running at http://localhost:${port}`);
-    });
-}
-
-startServer();
+app.listen(port, '0.0.0.0', () => {
+    console.log(`QR generator running at http://0.0.0.0:${port}`);
+});
