@@ -1,36 +1,52 @@
-/* 
-1. Use the inquirer npm package to get user input.*/
+import express from 'express';
+import qr from 'qr-image';
+import fs from 'fs';
 import inquirer from 'inquirer';
-import qr from "qr-image";
-import fs from "fs";
 
-inquirer
-  .prompt([
-    {
-        message:"enter the website name:",
-        name:"URL"
+const app = express();
+const port = 3000;
+
+// Function to prompt the user for a URL
+async function getWebsiteInput() {
+    const answers = await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'websiteURL',
+            message: 'Enter the website URL to generate QR code:'
+        }
+    ]);
+
+    return answers.websiteURL;
+}
+
+// QR code generation and server setup
+async function startServer() {
+    const websiteURL = await getWebsiteInput();
+
+    if (!websiteURL) {
+        console.log('No URL provided. Exiting...');
+        process.exit(1);
     }
-  ])
-   .then((answers) => {
-      const url = answers.URL;
-      var qr_svg = qr.image(url);
-      qr_svg.pipe(fs.createWriteStream("qr_ig.png"));
-   })
-  .catch((error) => {
-    if (error.isTtyError) {
-      // Prompt couldn't be rendered in the current environment
-    } else {
-      // Something else went wrong
-    }
-  });
 
-/*
-2. Use the qr-image npm package to turn the user entered URL into a QR code image.
-*/
+    console.log(`Generating QR code for: ${websiteURL}`);
 
-/*
-3. Create a txt file to save the user input using the native fs node module.
-*/
+    const qrCode = qr.image(websiteURL, { type: 'png' });
+    const qrPath = './qr-code.png';
+    const qrStream = fs.createWriteStream(qrPath);
+    qrCode.pipe(qrStream);
 
+    qrStream.on('finish', () => {
+        console.log(`QR code generated! Access it at: http://localhost:${port}/qr`);
+    });
 
- 
+    // Serve the QR code in the browser
+    app.get('/qr', (req, res) => {
+        res.sendFile(qrPath, { root: '.' });
+    });
+
+    app.listen(port, () => {
+        console.log(`QR generator running at http://localhost:${port}`);
+    });
+}
+
+startServer();
