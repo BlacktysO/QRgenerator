@@ -20,3 +20,4 @@ app.get('/generate', (req, res) => {
 app.listen(port, '0.0.0.0', () => {
     console.log(`QR generator running at http://0.0.0.0:${port}`);
 });
+
